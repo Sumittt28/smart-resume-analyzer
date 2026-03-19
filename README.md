@@ -6,7 +6,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-4ea94b)](https://mongoosejs.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8)](https://tailwindcss.com/)
 
-Smart Resume Analyzer is a fullstack ATS-style web application that compares uploaded resumes against job descriptions using structured parsing, skill normalization, TF-IDF + cosine similarity, and explainable scoring. It is built as a unified Next.js application, with the frontend UI and backend API routes living in the same codebase for simpler deployment and maintenance.
+Smart Resume Analyzer is a fullstack ATS-style web application that compares uploaded resumes against job descriptions using structured parsing, skill normalization, TF-IDF plus cosine similarity, and explainable scoring. It is built as a unified Next.js application, with the frontend UI and backend API routes living in the same codebase for simpler development and deployment.
 
 ## Overview
 
@@ -18,14 +18,14 @@ The project helps candidates understand how closely a resume matches a target ro
 - missing skills and keyword gaps
 - domain-aware recommendations
 
-The output is designed to feel like a practical ATS report instead of a simple keyword counter.
+The result is designed to feel like a practical ATS report instead of a basic keyword counter.
 
 ## Features
 
 - PDF resume upload with text extraction
 - authentication with registration, login, logout, and protected routes
 - ATS-style analysis with weighted scoring
-- TF-IDF + cosine similarity for context matching
+- TF-IDF plus cosine similarity for context matching
 - skill gap detection and missing skills reporting
 - domain-aware recommended skills for frontend, backend, and general roles
 - explainable score breakdown for skills, context, and experience
@@ -51,9 +51,9 @@ The output is designed to feel like a practical ATS report instead of a simple k
 ### Database
 
 - MongoDB
-- In-memory MongoDB fallback for local/dev safety and testing
+- in-memory MongoDB fallback for local development and test safety
 
-### NLP & Analysis
+### NLP and Analysis
 
 - rule-based resume parsing
 - skill normalization and alias mapping
@@ -66,20 +66,20 @@ The output is designed to feel like a practical ATS report instead of a simple k
 This repository uses a single Next.js fullstack architecture:
 
 ```text
-app/                 UI routes + API routes
+app/                 UI routes plus API routes
 lib/                 analysis engine, auth, db utilities
 models/              Mongoose models
 public/              static assets
 scripts/             smoke tests and local verification scripts
 docs/                architecture and scoring documentation
-middleware.ts        route protection
+proxy.ts             route protection
 README.md            project overview and setup
 ```
 
 Frontend and backend are logically separated inside the app:
 
 - frontend: `app/`, page routes, client components, dashboard, result pages
-- backend: `app/api/`, `lib/`, `models/`, auth/database/analysis services
+- backend: `app/api/`, `lib/`, `models/`, auth, database, and analysis services
 
 ## How It Works
 
@@ -89,7 +89,7 @@ Frontend and backend are logically separated inside the app:
 4. The analyzer:
    - extracts resume text
    - detects skills from the resume and JD
-   - computes context similarity with TF-IDF + cosine similarity
+   - computes context similarity with TF-IDF plus cosine similarity
    - estimates experience alignment
    - generates matched skills, missing skills, recommended skills, suggestions, and explanations
 5. The app stores the analysis and shows a detailed report
@@ -97,11 +97,11 @@ Frontend and backend are logically separated inside the app:
 ## Scoring Logic
 
 ```text
-Match Score = (Skills × 0.5) + (Context × 0.3) + (Experience × 0.2)
+Match Score = (Skills x 0.5) + (Context x 0.3) + (Experience x 0.2)
 ```
 
 - Skills Score: percentage of recognized JD skills found in the resume
-- Context Score: semantic similarity between resume and JD language using TF-IDF + cosine similarity
+- Context Score: semantic similarity between resume and JD language using TF-IDF plus cosine similarity
 - Experience Score: alignment of years, role signals, and relevant responsibility overlap
 
 More detail is available in [docs/scoring-logic.md](docs/scoring-logic.md).
@@ -139,6 +139,26 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## Deploy on Vercel
+
+1. Import `Sumittt28/smart-resume-analyzer` into Vercel
+2. Keep the detected framework preset as `Next.js`
+3. Add these environment variables in Vercel Project Settings:
+
+```env
+MONGODB_URI=your-mongodb-connection-string
+JWT_SECRET=your-secure-random-secret
+APP_BASE_URL=https://your-project-name.vercel.app
+```
+
+4. Deploy
+
+Notes:
+
+- production requires a real MongoDB database; the in-memory fallback is only used for local development and testing
+- `APP_BASE_URL` should match your Vercel domain or custom domain
+- if you add a custom domain later, update `APP_BASE_URL` to match it
+
 ## Usage
 
 1. Create an account or sign in
@@ -167,7 +187,7 @@ npm run build
 
 ## Screenshots
 
-Add screenshots or demo GIFs here:
+Add screenshots or a short demo GIF here:
 
 - dashboard
 - upload flow

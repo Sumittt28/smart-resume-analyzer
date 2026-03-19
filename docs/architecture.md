@@ -44,17 +44,17 @@ This module performs:
 ### Auth Layer
 
 - `lib/auth.ts`
-- `middleware.ts`
+- `proxy.ts`
 - `app/api/auth/*`
 
-Authentication uses JWT cookies with protected routes enforced through middleware and API checks.
+Authentication uses JWT cookies with protected routes enforced through the Next.js proxy layer and API checks.
 
 ### Persistence Layer
 
 - `lib/db.ts`
 - `models/`
 
-Mongoose is used for database models and MongoDB connectivity. Local development can fall back to an in-memory MongoDB instance if `MONGODB_URI` is not available.
+Mongoose is used for database models and MongoDB connectivity. Local development can fall back to an in-memory MongoDB instance if `MONGODB_URI` is not available, but production requires a real MongoDB connection string.
 
 ## Request Flow
 

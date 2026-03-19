@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
 
 type MongooseCache = {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
-  memoryServer: MongoMemoryServer | null;
+  memoryServer: {
+    stop: () => Promise<boolean>;
+    getUri: () => string;
+  } | null;
 };
 
 const globalWithMongoose = global as typeof globalThis & {
@@ -19,26 +21,46 @@ const cached: MongooseCache =
     memoryServer: null,
   });
 
+async function createMemoryServer() {
+  const { MongoMemoryServer } = await import("mongodb-memory-server");
+  return MongoMemoryServer.create();
+}
+
 export async function connectDb() {
   if (cached.conn) return cached.conn;
 
-  const mongoUri = process.env.MONGODB_URI;
+  const mongoUri = process.env.MONGODB_URI?.trim();
+  const isProduction = process.env.NODE_ENV === "production";
+
   if (!cached.promise) {
-    if (mongoUri) {
-      cached.promise = mongoose.connect(mongoUri).then((m) => m).catch(async (err) => {
-        console.warn("MongoDB URI failed, falling back to in-memory Mongo:", err.message);
-        if (cached.memoryServer) {
-          await cached.memoryServer.stop();
+    cached.promise = (async () => {
+      if (mongoUri) {
+        try {
+          return await mongoose.connect(mongoUri);
+        } catch (err) {
+          if (isProduction) {
+            throw new Error(`Failed to connect to MongoDB using MONGODB_URI: ${(err as Error).message}`);
+          }
+
+          console.warn("MongoDB URI failed, falling back to in-memory Mongo:", (err as Error).message);
+          if (cached.memoryServer) {
+            await cached.memoryServer.stop();
+          }
+          cached.memoryServer = await createMemoryServer();
+          return mongoose.connect(cached.memoryServer.getUri());
         }
-        cached.memoryServer = await MongoMemoryServer.create();
-        const uri = cached.memoryServer.getUri();
-        return mongoose.connect(uri).then((m) => m);
-      });
-    } else {
-      cached.memoryServer = await MongoMemoryServer.create();
-      const uri = cached.memoryServer.getUri();
-      cached.promise = mongoose.connect(uri).then((m) => m);
-    }
+      }
+
+      if (isProduction) {
+        throw new Error("Missing MONGODB_URI environment variable in production.");
+      }
+
+      cached.memoryServer = await createMemoryServer();
+      return mongoose.connect(cached.memoryServer.getUri());
+    })().catch((err) => {
+      cached.promise = null;
+      throw err;
+    });
   }
 
   cached.conn = await cached.promise;

@@ -3,10 +3,10 @@
 ## Final Score Formula
 
 ```text
-Match Score = (Skills × 0.5) + (Context × 0.3) + (Experience × 0.2)
+Match Score = (Skills x 0.5) + (Context x 0.3) + (Experience x 0.2)
 ```
 
-The analyzer keeps this weighting deterministic so results remain explainable and stable across runs.
+The analyzer keeps this weighting deterministic so results stay explainable and stable across runs.
 
 ## Skills Score
 

@@ -1,19 +1,27 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "resume-secret-key";
 const JWT_EXPIRES_IN = "7d";
 
-if (!JWT_SECRET) {
-  throw new Error("Missing JWT_SECRET environment variable");
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET?.trim();
+  if (secret) {
+    return secret;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Missing JWT_SECRET environment variable in production.");
+  }
+
+  return "resume-secret-key";
 }
 
 export function signJwt(payload: { userId: string }) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: JWT_EXPIRES_IN });
 }
 
 export function verifyJwt(token: string) {
   try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string; iat: number; exp: number };
+    return jwt.verify(token, getJwtSecret()) as { userId: string; iat: number; exp: number };
   } catch {
     return null;
   }

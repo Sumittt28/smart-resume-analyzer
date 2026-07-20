@@ -55,12 +55,26 @@ type AnalysisDetail = {
   createdAt: string;
 };
 
+type InterviewQuestions = {
+  technical: string[];
+  behavioral: string[];
+  gapBased: string[];
+};
+
 export default function ResultPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
   const [analysis, setAnalysis] = useState<AnalysisDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Gemini AI states
+  const [activeAiTab, setActiveAiTab] = useState<"rewrite" | "cover" | "interview" | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [rewrittenBullets, setRewrittenBullets] = useState("");
+  const [coverLetter, setCoverLetter] = useState("");
+  const [interviewQuestions, setInterviewQuestions] = useState<InterviewQuestions | null>(null);
+  const [aiError, setAiError] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -121,6 +135,38 @@ export default function ResultPage() {
       writeWrapped(`Suggestion ${index + 1}: `, suggestion);
     });
     doc.save(`analysis-${analysis._id}.pdf`);
+  };
+
+  const handleAiFeature = async (feature: "rewrite" | "cover" | "interview") => {
+    if (activeAiTab === feature && (rewrittenBullets || coverLetter || interviewQuestions)) return;
+    setActiveAiTab(feature);
+    setAiLoading(true);
+    setAiError("");
+
+    try {
+      const endpoint =
+        feature === "rewrite" ? "/api/ai/rewrite" :
+        feature === "cover" ? "/api/ai/cover-letter" :
+        "/api/ai/interview-prep";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ analysisId: id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Something went wrong");
+
+      if (feature === "rewrite") setRewrittenBullets(data.rewrittenBullets);
+      if (feature === "cover") setCoverLetter(data.coverLetter);
+      if (feature === "interview") setInterviewQuestions(data.questions);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Failed to generate content");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   if (loading) {
@@ -278,6 +324,134 @@ export default function ResultPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* ── Gemini AI Features ── */}
+        <div className="mt-6 rounded-2xl border border-cyan-500/30 bg-slate-900/80 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-lg">✨</span>
+            <h2 className="text-lg font-bold text-cyan-300">AI-Powered Features</h2>
+            <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-xs text-cyan-300">Powered by Gemini</span>
+          </div>
+
+          <div className="flex flex-wrap gap-3 mb-5">
+            <button
+              onClick={() => handleAiFeature("rewrite")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                activeAiTab === "rewrite"
+                  ? "bg-cyan-500 text-slate-900"
+                  : "border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+              }`}
+            >
+              ✏️ Rewrite Resume Bullets
+            </button>
+            <button
+              onClick={() => handleAiFeature("cover")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                activeAiTab === "cover"
+                  ? "bg-cyan-500 text-slate-900"
+                  : "border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+              }`}
+            >
+              📄 Generate Cover Letter
+            </button>
+            <button
+              onClick={() => handleAiFeature("interview")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                activeAiTab === "interview"
+                  ? "bg-cyan-500 text-slate-900"
+                  : "border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+              }`}
+            >
+              🎯 Interview Prep
+            </button>
+          </div>
+
+          {aiLoading && (
+            <div className="flex items-center gap-3 text-cyan-300 py-6">
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              <span>Gemini is thinking...</span>
+            </div>
+          )}
+
+          {aiError && (
+            <div className="rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-sm">
+              {aiError}
+            </div>
+          )}
+
+          {/* Rewrite Result */}
+          {activeAiTab === "rewrite" && rewrittenBullets && !aiLoading && (
+            <div>
+              <h3 className="font-semibold text-white mb-2">Rewritten Resume Bullets</h3>
+              <p className="text-xs text-slate-400 mb-3">These are AI-suggested improvements. Only use what genuinely applies to your experience.</p>
+              <div className="rounded-lg bg-slate-800 border border-slate-700 p-4">
+                <pre className="whitespace-pre-wrap text-sm text-slate-200 font-sans leading-relaxed">{rewrittenBullets}</pre>
+              </div>
+              <button
+                onClick={() => navigator.clipboard.writeText(rewrittenBullets)}
+                className="mt-3 rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-700"
+              >
+                Copy to clipboard
+              </button>
+            </div>
+          )}
+
+          {/* Cover Letter Result */}
+          {activeAiTab === "cover" && coverLetter && !aiLoading && (
+            <div>
+              <h3 className="font-semibold text-white mb-2">Generated Cover Letter</h3>
+              <p className="text-xs text-slate-400 mb-3">Tailored based on your resume and the job description. Personalize before sending.</p>
+              <div className="rounded-lg bg-slate-800 border border-slate-700 p-4">
+                <pre className="whitespace-pre-wrap text-sm text-slate-200 font-sans leading-relaxed">{coverLetter}</pre>
+              </div>
+              <button
+                onClick={() => navigator.clipboard.writeText(coverLetter)}
+                className="mt-3 rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-700"
+              >
+                Copy to clipboard
+              </button>
+            </div>
+          )}
+
+          {/* Interview Questions Result */}
+          {activeAiTab === "interview" && interviewQuestions && !aiLoading && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-white mb-2">🔧 Technical Questions</h3>
+                <ul className="space-y-2">
+                  {interviewQuestions.technical.map((q, i) => (
+                    <li key={i} className="rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-sm text-slate-200">
+                      {i + 1}. {q}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold text-white mb-2">🧠 Behavioral Questions</h3>
+                <ul className="space-y-2">
+                  {interviewQuestions.behavioral.map((q, i) => (
+                    <li key={i} className="rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-sm text-slate-200">
+                      {i + 1}. {q}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold text-white mb-2">⚠️ Gap-Based Questions <span className="text-xs text-slate-400">(prepare these carefully)</span></h3>
+                <ul className="space-y-2">
+                  {interviewQuestions.gapBased.map((q, i) => (
+                    <li key={i} className="rounded-lg bg-rose-500/10 border border-rose-500/20 px-4 py-3 text-sm text-slate-200">
+                      {i + 1}. {q}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

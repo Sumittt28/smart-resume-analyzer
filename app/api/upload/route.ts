@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
+import pdf from "pdf-parse";
 import { connectDb } from "@/lib/db";
 import { verifyJwt, getTokenFromRequest } from "@/lib/auth";
 import Resume from "@/models/Resume";
@@ -34,19 +34,11 @@ export async function POST(req: Request) {
 
     const arrayBuffer = await namedFile.arrayBuffer();
     let text = "";
-    let parser: PDFParse | null = null;
     try {
-      parser = new PDFParse({ data: Buffer.from(arrayBuffer) });
-      const parsed = await parser.getText();
-      text = parsed.text.trim();
+      const data = await pdf(Buffer.from(arrayBuffer));
+      text = data.text.trim();
     } catch (err) {
       console.warn("PDF text extraction failed", err);
-    } finally {
-      if (parser) {
-        await parser.destroy().catch((destroyError) => {
-          console.warn("PDF parser cleanup failed", destroyError);
-        });
-      }
     }
 
     if (!text) {

@@ -1,11 +1,17 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY is not set in environment variables");
+let model: GenerativeModel | null = null;
+
+function getModel(): GenerativeModel {
+  if (!model) {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not set in environment variables");
+    }
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+  }
+  return model;
 }
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
 // ─── Resume Rewriter ────────────────────────────────────────────────────────
 
@@ -40,7 +46,7 @@ Return ONLY the rewritten bullet points in this format:
 Do not add fabricated experience. Only improve what already exists.
 `.trim();
 
-  const result = await model.generateContent(prompt);
+  const result = await getModel().generateContent(prompt);
   return result.response.text();
 }
 
@@ -73,7 +79,7 @@ Write a professional cover letter (3-4 paragraphs) that:
 Keep it under 350 words. Sound human and enthusiastic, not robotic.
 `.trim();
 
-  const result = await model.generateContent(prompt);
+  const result = await getModel().generateContent(prompt);
   return result.response.text();
 }
 
@@ -112,7 +118,7 @@ Rules:
 Return ONLY valid JSON. No extra text.
 `.trim();
 
-  const result = await model.generateContent(prompt);
+  const result = await getModel().generateContent(prompt);
   const text = result.response.text().trim();
 
   // Extract JSON from response

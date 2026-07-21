@@ -2,248 +2,194 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-149eca)](https://react.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js-API-3c873a)](https://nodejs.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-4ea94b)](https://mongoosejs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-4ea94b)](https://www.mongodb.com/atlas)
+[![Gemini](https://img.shields.io/badge/Gemini-AI-4285F4)](https://ai.google.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8)](https://tailwindcss.com/)
 
-Smart Resume Analyzer is a fullstack ATS-style web application that compares uploaded resumes against job descriptions using structured parsing, skill normalization, TF-IDF plus cosine similarity, and explainable scoring. It is built as a unified Next.js application, with the frontend UI and backend API routes living in the same codebase for simpler development and deployment.
+A fullstack ATS-style resume analyzer that compares resumes against job descriptions using custom NLP (TF-IDF, cosine similarity, lemmatization) and enhances the experience with Gemini AI-powered features.
 
-## Overview
-
-The project helps candidates understand how closely a resume matches a target role. It analyzes:
-
-- skills coverage
-- contextual alignment with job requirements
-- experience relevance
-- missing skills and keyword gaps
-- domain-aware recommendations
-
-The result is designed to feel like a practical ATS report instead of a basic keyword counter.
+**Live Demo:** https://smart-resume-analyzer-kappa.vercel.app
 
 ## Features
 
-- PDF resume upload with text extraction
-- authentication with registration, login, logout, and protected routes
-- ATS-style analysis with weighted scoring
-- TF-IDF plus cosine similarity for context matching
-- skill gap detection and missing skills reporting
-- domain-aware recommended skills for frontend, backend, and general roles
-- explainable score breakdown for skills, context, and experience
-- analysis history dashboard
-- downloadable PDF report
-- deterministic smoke tests for analyzer logic and full application flow
+### Core Analysis (Custom NLP)
+- **PDF Resume Upload** — text extraction using pdf-parse
+- **Skill Detection** — rule-based parsing with 300+ skill aliases
+- **TF-IDF Vectorization** — term frequency-inverse document frequency weighting
+- **Cosine Similarity** — semantic context matching between resume and job description
+- **Lemmatization** — custom word normalization (e.g., "running" → "run")
+- **Weighted Scoring** — Skills (50%) + Context (30%) + Experience (20%)
+- **Gap Analysis** — identifies missing skills and keywords
+- **Explainable Results** — breakdown showing why each score was given
+
+### AI Features (Gemini API)
+- **✏️ Resume Bullet Rewriter** — rewrites weak bullets incorporating missing keywords
+- **📄 Cover Letter Generator** — creates tailored cover letters based on resume + JD
+- **🎯 Interview Prep** — predicts technical, behavioral, and gap-based questions
+
+### Other Features
+- JWT-based authentication (register, login, logout)
+- Analysis history dashboard
+- Downloadable PDF reports
+- Protected routes with middleware
 
 ## Tech Stack
 
-### Frontend
-
-- Next.js App Router
-- React 19
-- Tailwind CSS 4
-
-### Backend
-
-- Next.js Route Handlers
-- Node.js runtime
-- JWT-based authentication
-- Mongoose
-
-### Database
-
-- MongoDB
-- in-memory MongoDB fallback for local development and test safety
-
-### NLP and Analysis
-
-- rule-based resume parsing
-- skill normalization and alias mapping
-- TF-IDF vectorization
-- cosine similarity
-- deterministic text preprocessing and lemmatization
-
-## Project Structure
-
-This repository uses a single Next.js fullstack architecture:
-
-```text
-app/                 UI routes plus API routes
-lib/                 analysis engine, auth, db utilities
-models/              Mongoose models
-public/              static assets
-scripts/             smoke tests and local verification scripts
-docs/                architecture and scoring documentation
-proxy.ts             route protection
-README.md            project overview and setup
-```
-
-Frontend and backend are logically separated inside the app:
-
-- frontend: `app/`, page routes, client components, dashboard, result pages
-- backend: `app/api/`, `lib/`, `models/`, auth, database, and analysis services
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 16 (App Router) |
+| Frontend | React 19, Tailwind CSS 4 |
+| Backend | Next.js API Routes, Node.js |
+| Database | MongoDB Atlas, Mongoose |
+| Auth | JWT (jsonwebtoken), bcrypt |
+| PDF Parsing | pdf-parse |
+| AI | Google Gemini API (@google/generative-ai) |
+| NLP | Custom implementation (TF-IDF, cosine similarity, lemmatization) |
 
 ## How It Works
 
-1. Register or log in
-2. Upload a PDF resume
-3. Paste a job description
-4. The analyzer:
-   - extracts resume text
-   - detects skills from the resume and JD
-   - computes context similarity with TF-IDF plus cosine similarity
-   - estimates experience alignment
-   - generates matched skills, missing skills, recommended skills, suggestions, and explanations
-5. The app stores the analysis and shows a detailed report
-
-## Scoring Logic
-
-```text
-Match Score = (Skills x 0.5) + (Context x 0.3) + (Experience x 0.2)
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
+│ Upload PDF  │────▶│ Extract Text │────▶│ Tokenize +      │
+│ + Paste JD  │     │ (pdf-parse)  │     │ Lemmatize       │
+└─────────────┘     └──────────────┘     └────────┬────────┘
+                                                  │
+                    ┌──────────────┐     ┌────────▼────────┐
+                    │ Detect       │◀────│ Build TF-IDF    │
+                    │ Skills/Gaps  │     │ Vectors         │
+                    └──────┬───────┘     └────────┬────────┘
+                           │                      │
+                    ┌──────▼───────┐     ┌────────▼────────┐
+                    │ Calculate    │◀────│ Cosine          │
+                    │ Final Score  │     │ Similarity      │
+                    └──────┬───────┘     └─────────────────┘
+                           │
+                    ┌──────▼───────┐
+                    │ Store in     │
+                    │ MongoDB      │
+                    └──────────────┘
 ```
 
-- Skills Score: percentage of recognized JD skills found in the resume
-- Context Score: semantic similarity between resume and JD language using TF-IDF plus cosine similarity
-- Experience Score: alignment of years, role signals, and relevant responsibility overlap
+### Scoring Formula
+```
+Match Score = (Skills × 0.5) + (Context × 0.3) + (Experience × 0.2)
+```
 
-More detail is available in [docs/scoring-logic.md](docs/scoring-logic.md).
+- **Skills Score** — % of JD skills found in resume
+- **Context Score** — TF-IDF cosine similarity between resume and JD text
+- **Experience Score** — years alignment + responsibility overlap
+
+## Project Structure
+
+```
+smart-resume-analyzer/
+├── app/
+│   ├── api/
+│   │   ├── auth/          # register, login, logout, me
+│   │   ├── upload/        # PDF upload + text extraction
+│   │   ├── analyze/       # NLP analysis endpoint
+│   │   ├── analysis/      # fetch analysis results
+│   │   ├── dashboard/     # user's analysis history
+│   │   └── ai/            # Gemini features
+│   │       ├── rewrite/
+│   │       ├── cover-letter/
+│   │       └── interview-prep/
+│   ├── dashboard/         # main dashboard page
+│   ├── result/[id]/       # analysis result page
+│   ├── login/
+│   └── register/
+├── lib/
+│   ├── resume-analyzer.ts # core NLP engine (TF-IDF, cosine, lemmatization)
+│   ├── gemini.ts          # Gemini API integration
+│   ├── auth.ts            # JWT utilities
+│   └── db.ts              # MongoDB connection
+├── models/
+│   ├── User.ts
+│   ├── Resume.ts
+│   └── Analysis.ts
+└── types/
+    └── pdf-parse.d.ts
+```
 
 ## Installation
 
-### 1. Clone the repository
-
+### 1. Clone
 ```bash
 git clone https://github.com/Sumittt28/smart-resume-analyzer.git
 cd smart-resume-analyzer
 ```
 
 ### 2. Install dependencies
-
 ```bash
 npm install
 ```
 
-### 3. Configure environment variables
-
-Create a local env file from the example:
-
+### 3. Configure environment
 ```bash
-copy .env.example .env.local
+cp .env.example .env.local
 ```
 
-Update the values in `.env.local` as needed.
+Edit `.env.local`:
+```env
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/smart-resume-analyzer
+JWT_SECRET=your-secure-random-secret
+APP_BASE_URL=http://localhost:3000
+GEMINI_API_KEY=your-gemini-api-key
+```
 
-### 4. Start the app
+Get a Gemini API key at: https://aistudio.google.com/app/apikey
 
+### 4. Run
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open http://localhost:3000
 
-## Deploy on Vercel
+## Deploy to Vercel
 
-1. Import `Sumittt28/smart-resume-analyzer` into Vercel
-2. Keep the detected framework preset as `Next.js`
-3. Add these environment variables in Vercel Project Settings:
-
-```env
-MONGODB_URI=your-mongodb-connection-string
-JWT_SECRET=your-secure-random-secret
-APP_BASE_URL=https://your-project-name.vercel.app
-```
-
-4. Deploy
-
-Notes:
-
-- production requires a real MongoDB database; the in-memory fallback is only used for local development and testing
-- `APP_BASE_URL` should match your Vercel domain or custom domain
-- if you add a custom domain later, update `APP_BASE_URL` to match it
+1. Import repository to Vercel
+2. Add environment variables:
+   - `MONGODB_URI`
+   - `JWT_SECRET`
+   - `APP_BASE_URL`
+   - `GEMINI_API_KEY`
+3. Deploy
 
 ## Usage
 
-1. Create an account or sign in
-2. Upload a text-based PDF resume
-3. Paste a job description
-4. Review:
-   - overall match score
-   - matched skills
-   - missing skills
-   - recommended skills
-   - explanation for skills, context, and experience scores
-5. Download the report as PDF if needed
-
-## Verification
-
-Run the project checks:
-
-```bash
-npm run lint
-npm run test:analyzer
-npm run test:e2e
-npm run build
-```
-
-`test:e2e` expects the local app to be available at `http://localhost:3000`.
+1. **Register/Login** — create an account
+2. **Upload Resume** — PDF only, text-based works best
+3. **Paste Job Description** — full JD text
+4. **View Analysis** — score breakdown, matched/missing skills, suggestions
+5. **Use AI Features**:
+   - Click "Rewrite Resume Bullets" to improve weak points
+   - Click "Generate Cover Letter" for a tailored letter
+   - Click "Interview Prep" to see likely questions
 
 ## Screenshots
 
-Add screenshots or a short demo GIF here:
+| Dashboard | Analysis Result |
+|-----------|-----------------|
+| Upload resume + paste JD | Score breakdown + AI features |
 
-- dashboard
-- upload flow
-- analysis result page
-- downloadable report
+## What Makes This Different
 
-## Example Output
+Most resume analyzers use simple keyword matching. This project:
 
-```text
-Match Score: 84%
-
-Breakdown:
-- Skills: 90%
-- Context: 75%
-- Experience: 80%
-
-Matched Skills:
-- react
-- javascript
-- css
-
-Missing Skills:
-- typescript
-- jest
-
-Recommended Skills:
-- accessibility
-- performance optimization
-
-Suggestions:
-- Add TypeScript if you have used it in relevant work
-- Include measurable achievements in experience bullets
-```
-
-## Documentation
-
-- [Architecture](docs/architecture.md)
-- [Scoring Logic](docs/scoring-logic.md)
-
-## Future Improvements
-
-- embeddings-based similarity for richer semantic matching
-- recruiter-facing comparison dashboard
-- resume section quality scoring with charts
-- support for more resume formats
-- richer analytics and export options
+1. **Custom NLP** — TF-IDF vectorization + cosine similarity for semantic matching, not just keyword counting
+2. **Explainable Scores** — every score comes with reasons
+3. **Gemini AI** — goes beyond analysis to help you improve
 
 ## Contributing
 
-Contributions are welcome. Open an issue or submit a pull request with a clear summary of the change and validation steps.
+PRs welcome. Please open an issue first to discuss changes.
 
-## Contact
+## Author
 
-Sumit Kumar  
-GitHub: https://github.com/Sumittt28
+**Sumit Kumar Singh**  
+GitHub: [@Sumittt28](https://github.com/Sumittt28)
 
-## If You Like This Project
+## License
 
-Give the repository a star and share it with others.
+MIT
